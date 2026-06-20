@@ -51,7 +51,7 @@ def analyze_braking_and_entry(df):
         st.write("**In-Game Solution:** Shift Brake Bias forward; decrease Engine Braking.")
 
     entry_understeer = df[(df['brake'] > 0.1) & 
-                          (abs(df['steering']) > 0.6) & 
+                          (abs(df['steering']) > 0.75) & 
                           (abs(df['gforce_X']) < 1.0) & 
                           (df['speed_kmh'] > 80)]
     
@@ -97,7 +97,7 @@ def analyze_corner_exit(df):
     rear_wheel_speed = df[['wheel_speed_0', 'wheel_speed_1']].mean(axis=1) * 3.6
 
     power_oversteer = df[(df['throttle'] > 0.4) & 
-                         ((rear_wheel_speed - df['speed_kmh']) > 15) & 
+                         ((rear_wheel_speed - df['speed_kmh']) > 8) & 
                          (abs(df['angular_vel_Y']) > 1.2)]
     
     if not power_oversteer.empty:
@@ -122,8 +122,7 @@ def analyze_aerodynamics(df):
     st.subheader("4. Aerodynamics & Straight-Line Speed")
     issues_found = False
 
-    high_drag = df[(df['gear'] == 8) & 
-                   (df['rpm'] > 11000) & 
+    high_drag = df[(df['gear'] == 8) &  
                    (df['speed_kmh'] < df['speed_kmh'].max() * 0.95)]
     
     if not high_drag.empty:
@@ -141,7 +140,7 @@ def analyze_chassis_dynamics(df):
     bottoming_out = df[(df['speed_kmh'] > 200) & 
                        ((df['susp_pos_0'] < 0.15) | (df['susp_pos_1'] < 0.15) | 
                         (df['susp_pos_2'] < 0.15) | (df['susp_pos_3'] < 0.15)) & 
-                       (abs(df['gforce_Y']) > 5.0)]
+                       abs(df['gforce_Z'] > 5.0)]
     
     if not bottoming_out.empty:
         issues_found = True
