@@ -25,6 +25,20 @@ def load_data(file):
             return None
     return None
 
+def analyze_track_map(df):
+    st.subheader("0. Track Map (Geometric Baseline)")
+    
+    # Check for standard coordinate column naming conventions
+    x_col = next((col for col in df.columns if col in ['world_position_X', 'worldPositionX', 'pos_X']), None)
+    z_col = next((col for col in df.columns if col in ['world_position_Z', 'worldPositionZ', 'pos_Z']), None)
+    
+    if x_col and z_col:
+        st.write("Visualizing circuit layout based on spatial coordinates.")
+        # Native Streamlit chart to avoid external dependencies
+        st.scatter_chart(df, x=x_col, y=z_col)
+    else:
+        st.info("Spatial coordinate columns not found in this CSV. Cannot generate map.")
+
 def analyze_braking_and_entry(df):
     st.subheader("1. Braking & Corner Entry Diagnostics")
     issues_found = False
@@ -122,7 +136,7 @@ def analyze_aerodynamics(df):
     st.subheader("4. Aerodynamics & Straight-Line Speed")
     issues_found = False
 
-    high_drag = df[(df['gear'] == 8) &  
+    high_drag = df[(df['gear'] == 8) & 
                    (df['speed_kmh'] < df['speed_kmh'].max() * 0.95)]
     
     if not high_drag.empty:
@@ -244,6 +258,7 @@ if uploaded_file is not None:
         
         data_valid = analyze_data_integrity(telemetry_df)
         if data_valid:
+            analyze_track_map(telemetry_df)
             analyze_braking_and_entry(telemetry_df)
             analyze_mid_corner_balance(telemetry_df)
             analyze_corner_exit(telemetry_df)
