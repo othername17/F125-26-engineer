@@ -140,7 +140,7 @@ def analyze_chassis_dynamics(df):
     bottoming_out = df[(df['speed_kmh'] > 200) & 
                        ((df['susp_pos_0'] < 0.15) | (df['susp_pos_1'] < 0.15) | 
                         (df['susp_pos_2'] < 0.15) | (df['susp_pos_3'] < 0.15)) & 
-                       abs(df['gforce_Z'] > 5.0)]
+                       (abs(df['gforce_Z']) > 5.0)]
     
     if not bottoming_out.empty:
         issues_found = True
