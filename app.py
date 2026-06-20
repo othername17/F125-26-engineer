@@ -32,4 +32,4 @@ def analyze_track_map(df):
         8: "Hockenheim", 9: "Hungaroring", 10: "Spa-Francorchamps", 11: "Monza",
         12: "Singapore", 13: "Suzuka", 14: "Abu Dhabi", 15: "COTA (Texas)",
         16: "Brazil", 17: "Austria", 18: "Sochi", 19: "Mexico",
-        20: "Baku",
+        20: "Baku", }
