@@ -46,7 +46,7 @@ def analyze_track_map(df, ref_df=None):
         24: "Suzuka Short", 25: "Hanoi", 26: "Zandvoort", 27: "Imola",
         28: "Portimão", 29: "Jeddah", 30: "Miami", 31: "Las Vegas", 32: "Losail"
     }
-    }
+
     track_name = track_dict.get(df['trackId'].iloc[0], "Unknown")
     st.subheader(f"10. Track Map Overlay: {track_name}")
 
