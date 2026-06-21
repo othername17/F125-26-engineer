@@ -30,7 +30,7 @@ def load_data(file):
                 df = df[df['validBin'] == 1]
             if all(col in df.columns for col in ['velocity_X', 'velocity_Y', 'velocity_Z']):
                 df['speed_kmh'] = np.sqrt(df['velocity_X']**2 + df['velocity_Y']**2 + df['velocity_Z']**2) * 3.6
-            df['Issue'] = 'Normal' # Initialize for diagnostics
+            df['Issue'] = 'Normal'
             return df
         except Exception as e:
             st.error(f"Error loading file: {e}")
@@ -61,9 +61,9 @@ def get_dynamic_apexes(df):
             apexes.append({'speed': row[speed_col], 'x': row[x_col], 'z': row[z_col]})
     return apexes
 
-# --- 4. PHYSICS DIAGNOSTICS ---
+# --- 4. PHYSICS DIAGNOSTICS & SETUP SUGGESTIONS ---
 def run_all_diagnostics(df):
-    st.header("Vehicle Diagnostics")
+    st.header("Vehicle Diagnostics & Setup Fixes")
     issues_found = False
 
     # Braking & Entry
@@ -73,12 +73,14 @@ def run_all_diagnostics(df):
         if not front_lockup.empty:
             issues_found = True
             st.warning(f"⚠️ **Front Wheel Lockup** ({len(front_lockup)} frames)")
+            st.info("🔧 **Fix:** Move Brake Bias rearward (1-2%), decrease Brake Pressure, or stiffen Front Suspension.")
             
     if all(c in df.columns for c in ['brake', 'steering', 'gforce_X', 'speed_kmh']):
         entry_understeer = df[(df['brake'] > 0.1) & (abs(df['steering']) > 0.75) & (abs(df['gforce_X']) < 1.0) & (df['speed_kmh'] > 80)]
         if not entry_understeer.empty:
             issues_found = True
             st.warning(f"⚠️ **Entry Understeer** ({len(entry_understeer)} frames)")
+            st.info("🔧 **Fix:** Move Brake Bias rearward, soften Front Anti-Roll Bar, or increase Front Wing aero.")
 
     # Traction & Exit
     if all(c in df.columns for c in ['wheel_speed_0', 'wheel_speed_1', 'throttle', 'speed_kmh', 'angular_vel_Y']):
@@ -87,6 +89,7 @@ def run_all_diagnostics(df):
         if not power_oversteer.empty:
             issues_found = True
             st.warning(f"⚠️ **Power Oversteer / Wheelspin** ({len(power_oversteer)} frames)")
+            st.info("🔧 **Fix:** Decrease On-Throttle Differential, soften Rear Suspension, or lower Rear Tire Pressures.")
 
     # Aero & Chassis
     if all(c in df.columns for c in ['gear', 'speed_kmh']):
@@ -94,15 +97,17 @@ def run_all_diagnostics(df):
         if not high_drag.empty:
             issues_found = True
             st.warning(f"⚠️ **High Aero Drag** ({len(high_drag)} frames at top gear)")
+            st.info("🔧 **Fix:** Lower Rear Wing angle to increase top speed on straights.")
 
     if all(c in df.columns for c in ['susp_pos_0', 'susp_pos_1', 'susp_pos_2', 'susp_pos_3', 'gforce_Z', 'speed_kmh']):
         bottoming_out = df[(df['speed_kmh'] > 200) & ((df['susp_pos_0'] < 0.15) | (df['susp_pos_1'] < 0.15) | (df['susp_pos_2'] < 0.15) | (df['susp_pos_3'] < 0.15)) & (abs(df['gforce_Z']) > 5.0)]
         if not bottoming_out.empty:
             issues_found = True
             st.warning(f"⚠️ **Chassis Bottoming Out** ({len(bottoming_out)} frames)")
+            st.info("🔧 **Fix:** Increase Ride Height (Front/Rear) or stiffen Suspension.")
 
     if not issues_found:
-        st.success("✅ No critical setup issues detected on this lap.")
+        st.success("✅ No critical setup issues detected on this lap. Setup is dialed in.")
 
 # --- 5. VISUALIZATION FUNCTIONS ---
 def plot_telemetry_traces(df, ref_df=None):
