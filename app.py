@@ -35,6 +35,7 @@ def get_apex_data(df, corner_ranges):
     return apex_data
 
 def analyze_track_map(df, ref_df=None):
+    st.write(f"Detected ID: {df['trackId'].iloc[0]}")
     track_dict = {
         0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
         4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
