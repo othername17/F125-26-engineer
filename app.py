@@ -283,4 +283,4 @@ def analyze_data_integrity(df):
     brake_quantized = not brake_changes.empty and brake_changes.var() < 1e-6
     
     if throttle_quantized or brake_quantized:
-        st.error("🚨
+        st.error("🚨")
