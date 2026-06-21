@@ -1,3 +1,5 @@
+Here is the complete app.py file with specific setup and driving suggestions mapped to every diagnostic warning.
+```python
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -93,40 +95,49 @@ def analyze_braking_and_entry(df):
     issues_found = False
     front_wheel_speed = df[['wheel_speed_2', 'wheel_speed_3']].mean(axis=1) * 3.6
     rear_wheel_speed = df[['wheel_speed_0', 'wheel_speed_1']].mean(axis=1) * 3.6
+    
     front_lockup = df[(df['brake'] > 0.8) & (df['speed_kmh'] > 50) & ((df['speed_kmh'] - front_wheel_speed) > 15)]
     if not front_lockup.empty:
         issues_found = True
         df.loc[front_lockup.index, 'Issue'] = 'Front Lockup'
         st.warning(f"⚠️ **Front Wheel Lockup Detected** ({len(front_lockup)} frames)")
+        st.info("💡 **Suggestion:** Move brake bias rearward (e.g., from 58% to 56%). Reduce overall brake pressure if lockups persist.")
     
     rear_lockup = df[(df['brake'] > 0.6) & ((df['speed_kmh'] - rear_wheel_speed) > 15) & (abs(df['angular_vel_Y']) > 1.0)]
     if not rear_lockup.empty:
         issues_found = True
         df.loc[rear_lockup.index, 'Issue'] = 'Rear Lockup'
         st.warning(f"⚠️ **Rear Lockup Detected** ({len(rear_lockup)} frames)")
+        st.info("💡 **Suggestion:** Move brake bias forward. Increase Off-Throttle Differential to stabilize the rear on corner entry.")
 
     entry_understeer = df[(df['brake'] > 0.1) & (abs(df['steering']) > 0.75) & (abs(df['gforce_X']) < 1.0) & (df['speed_kmh'] > 80)]
     if not entry_understeer.empty:
         issues_found = True
         df.loc[entry_understeer.index, 'Issue'] = 'Entry Understeer'
         st.warning(f"⚠️ **Entry Understeer Detected** ({len(entry_understeer)} frames)")
+        st.info("💡 **Suggestion:** Increase Front Wing Aero. Soften Front Suspension. Ensure you are trail braking effectively to keep weight over the nose.")
+        
     if not issues_found:
         st.success("No Braking & Corner Entry issues detected.")
 
 def analyze_mid_corner_balance(df):
     st.subheader("2. Mid-Corner Balance Diagnostics")
     issues_found = False
+    
     mid_understeer = df[(df['throttle'] < 0.05) & (df['brake'] < 0.05) & (abs(df['steering']) > 0.6) & (abs(df['angular_vel_Y']) < 0.5) & (df['speed_kmh'] > 50)]
     if not mid_understeer.empty:
         issues_found = True
         df.loc[mid_understeer.index, 'Issue'] = 'Mid-Corner Understeer'
         st.warning(f"⚠️ **Mid-Corner Understeer Detected** ({len(mid_understeer)} frames)")
+        st.info("💡 **Suggestion:** Soften Front Anti-Roll Bar (ARB) or stiffen Rear ARB to encourage rotation. Decrease Off-Throttle Differential.")
 
     mid_oversteer = df[(df['throttle'] < 0.05) & (df['brake'] < 0.05) & (abs(df['angular_vel_Y']) > 1.5)]
     if not mid_oversteer.empty:
         issues_found = True
         df.loc[mid_oversteer.index, 'Issue'] = 'Mid-Corner Oversteer'
         st.warning(f"⚠️ **Mid-Corner Oversteer Detected** ({len(mid_oversteer)} frames)")
+        st.info("💡 **Suggestion:** Stiffen Front ARB or soften Rear ARB. Increase Off-Throttle Differential to stop the car rotating too quickly.")
+        
     if not issues_found:
         st.success("No Mid-Corner Balance issues detected.")
 
@@ -134,88 +145,112 @@ def analyze_corner_exit(df):
     st.subheader("3. Corner Exit & Traction Diagnostics")
     issues_found = False
     rear_wheel_speed = df[['wheel_speed_0', 'wheel_speed_1']].mean(axis=1) * 3.6
+    
     power_oversteer = df[(df['throttle'] > 0.4) & ((rear_wheel_speed - df['speed_kmh']) > 8) & (abs(df['angular_vel_Y']) > 1.2)]
     if not power_oversteer.empty:
         issues_found = True
         df.loc[power_oversteer.index, 'Issue'] = 'Power Oversteer'
         st.warning(f"⚠️ **Power Oversteer Detected** ({len(power_oversteer)} frames)")
+        st.info("💡 **Suggestion:** Soften Rear Suspension. Decrease On-Throttle Differential for smoother power delivery. Roll onto the throttle slower.")
 
     on_throttle_understeer = df[(df['throttle'] > 0.2) & (abs(df['steering']) > 0.6) & (abs(df['gforce_X']) < 1.0) & (df['speed_kmh'] > 60)]
     if not on_throttle_understeer.empty:
         issues_found = True
         df.loc[on_throttle_understeer.index, 'Issue'] = 'On-Throttle Understeer'
         st.warning(f"⚠️ **On-Throttle Understeer Detected** ({len(on_throttle_understeer)} frames)")
+        st.info("💡 **Suggestion:** Increase On-Throttle Differential to push the car out of the corner. Stiffen Rear Suspension slightly.")
+        
     if not issues_found:
         st.success("No Corner Exit & Traction issues detected.")
 
 def analyze_aerodynamics(df):
     st.subheader("4. Aerodynamics & Straight-Line Speed")
     issues_found = False
+    
     high_drag = df[(df['gear'] == 8) & (df['speed_kmh'] < df['speed_kmh'].max() * 0.95)]
     if not high_drag.empty:
         issues_found = True
         df.loc[high_drag.index, 'Issue'] = 'High Drag'
         st.warning(f"⚠️ **High Drag Detected** ({len(high_drag)} frames)")
+        st.info("💡 **Suggestion:** Reduce Front and Rear Wing angles if straight-line speed is costing you time against the reference lap.")
+        
     if not issues_found:
         st.success("No Aerodynamics & Straight-Line Speed issues detected.")
 
 def analyze_chassis_dynamics(df):
     st.subheader("5. Chassis Dynamics & Ride Quality")
     issues_found = False
+    
     bottoming_out = df[(df['speed_kmh'] > 200) & ((df['susp_pos_0'] < 0.15) | (df['susp_pos_1'] < 0.15) | (df['susp_pos_2'] < 0.15) | (df['susp_pos_3'] < 0.15)) & (abs(df['gforce_Z']) > 5.0)]
     if not bottoming_out.empty:
         issues_found = True
         df.loc[bottoming_out.index, 'Issue'] = 'Bottoming Out'
         st.warning(f"⚠️ **Bottoming Out Detected** ({len(bottoming_out)} frames)")
+        st.info("💡 **Suggestion:** Increase Ride Height (Front and/or Rear). Stiffen Suspension to prevent the floor from hitting the track at high speeds.")
 
     kerb_instability = df[(abs(df['gforce_Y'].diff()) > 2.0) & (abs(df[['wheel_speed_0', 'wheel_speed_1', 'wheel_speed_2', 'wheel_speed_3']].diff().max(axis=1)) > 1.5) & (df['speed_kmh'] > 80)]
     if not kerb_instability.empty:
         issues_found = True
         df.loc[kerb_instability.index, 'Issue'] = 'Kerb Instability'
         st.warning(f"⚠️ **Kerb Instability Detected** ({len(kerb_instability)} frames)")
+        st.info("💡 **Suggestion:** Soften Suspension and Anti-Roll Bars to allow the car to ride kerbs better without becoming unsettled.")
+        
     if not issues_found:
         st.success("No Chassis Dynamics & Ride Quality issues detected.")
 
 def analyze_tyres(df):
     st.subheader("6. Tyre Temperatures & Wear")
     issues_found = False
+    
     overheating = df[df[['tyre_temp_0', 'tyre_temp_1', 'tyre_temp_2', 'tyre_temp_3']].max(axis=1) > 105]
     if not overheating.empty:
         issues_found = True
         df.loc[overheating.index, 'Issue'] = 'Tyre Overheating'
         st.warning(f"⚠️ **Tyre Overheating Detected** ({len(overheating)} frames)")
+        st.info("💡 **Suggestion:** Lower Tyre Pressures. Reduce sliding through corners (avoid overdriving).")
+        
     high_wear = df[df[['tyre_wear_0', 'tyre_wear_1', 'tyre_wear_2', 'tyre_wear_3']].max(axis=1) > 50]
     if not high_wear.empty:
         issues_found = True
         df.loc[high_wear.index, 'Issue'] = 'High Tyre Wear'
         st.warning(f"⚠️ **High Tyre Wear Detected** ({len(high_wear)} frames)")
+        st.info("💡 **Suggestion:** Reduce Camber and Toe angles. Ensure smoother steering and pedal inputs.")
+        
     if not issues_found:
         st.success("No Tyre Temperature & Wear issues detected.")
 
 def analyze_brake_temperatures(df):
     st.subheader("7. Brake Temperatures")
     issues_found = False
+    
     overheating = df[df[['brake_temp_0', 'brake_temp_1', 'brake_temp_2', 'brake_temp_3']].max(axis=1) > 1000]
     if not overheating.empty:
         issues_found = True
         df.loc[overheating.index, 'Issue'] = 'Brake Overheating'
         st.warning(f"⚠️ **Brake Overheating Detected** ({len(overheating)} frames)")
+        st.info("💡 **Suggestion:** Open Brake Ducts (increase cooling). Shift Brake Bias away from the overheating axle.")
+        
     cold_brakes = df[df[['brake_temp_0', 'brake_temp_1', 'brake_temp_2', 'brake_temp_3']].max(axis=1) < 400]
     if not cold_brakes.empty:
         issues_found = True
         df.loc[cold_brakes.index, 'Issue'] = 'Cold Brakes'
         st.warning(f"⚠️ **Cold Brakes Detected** ({len(cold_brakes)} frames)")
+        st.info("💡 **Suggestion:** Close Brake Ducts (decrease cooling) to keep brakes in their optimal operating window.")
+        
     if not issues_found:
         st.success("No Brake Temperature issues detected.")
 
 def analyze_fuel_and_weight(df):
     st.subheader("8. Fuel & Weight")
     issues_found = False
+    
     excess_fuel = df[(df['speed_kmh'] < df['speed_kmh'].max() * 0.9) & (df['fuel'] > 10.0)] 
     if not excess_fuel.empty:
         issues_found = True
         df.loc[excess_fuel.index, 'Issue'] = 'Excess Fuel'
         st.warning(f"⚠️ **Excessive Weight Detected** ({len(excess_fuel)} frames)")
+        st.info("💡 **Suggestion:** Underfuel the car slightly for your stint to save weight, relying on lift-and-coast to manage usage.")
+        
     if not issues_found:
         st.success("No Fuel & Weight issues detected.")
 
@@ -225,11 +260,14 @@ def analyze_data_integrity(df):
     brake_diff = df['brake'].diff().dropna()
     throttle_changes = throttle_diff[throttle_diff != 0]
     brake_changes = brake_diff[brake_diff != 0]
+    
     throttle_quantized = not throttle_changes.empty and throttle_changes.var() < 1e-6
     brake_quantized = not brake_changes.empty and brake_changes.var() < 1e-6
+    
     if throttle_quantized or brake_quantized:
         st.error("🚨 Spoofed/Automated Inputs Detected")
         return False
+        
     st.success("Data Integrity Check passed.")
     return True
 
@@ -277,3 +315,5 @@ if uploaded_file is not None:
                 st.plotly_chart(delta_fig)
 else:
     st.info("Please upload your telemetry CSV to begin.")
+
+```
