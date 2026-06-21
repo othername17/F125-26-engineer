@@ -4,7 +4,6 @@ import numpy as np
 import plotly.graph_objects as go
 import os
 
-# Global track dictionary
 track_dict = {
     0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
     4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
@@ -36,32 +35,57 @@ def load_data(file):
             return None
     return None
 
-def get_apex_data(df, corner_ranges):
-    apex_data = []
-    for start, end in corner_ranges:
-        segment = df[(df['distance'] >= start) & (df['distance'] <= end)]
-        if not segment.empty:
-            min_speed = segment['speed'].min()
-            min_row = segment[segment['speed'] == min_speed].iloc[0]
-            apex_data.append({'speed': min_speed, 'x': min_row['x'], 'y': min_row['y']})
-    return apex_data
+def get_dynamic_apexes(df):
+    apexes = []
+    speed_col = 'speed_kmh' if 'speed_kmh' in df.columns else 'speed'
+    
+    if 'steering' in df.columns and speed_col in df.columns:
+        turning = abs(df['steering']) > 0.3 
+        
+        df['local_min'] = df[speed_col].rolling(window=60, center=True).min()
+        apex_points = df[turning & (df[speed_col] == df['local_min'])]
+        
+        if not apex_points.empty:
+            apex_points = apex_points[apex_points.index.to_series().diff().fillna(51) > 50]
+
+        for _, row in apex_points.iterrows():
+            x_col = 'world_position_X' if 'world_position_X' in df.columns else 'x'
+            z_col = 'world_position_Z' if 'world_position_Z' in df.columns else 'y'
+            
+            apexes.append({
+                'speed': row[speed_col], 
+                'x': row[x_col], 
+                'z': row[z_col]
+            })
+    return apexes
 
 def analyze_track_map(df, ref_df=None):
-    track_id = df['trackId'].iloc[0]
+    track_id = df['trackId'].iloc[0] if 'trackId' in df.columns else "Unknown"
     track_name = track_id if isinstance(track_id, str) else track_dict.get(track_id, "Unknown")
     
     st.subheader(f"10. Track Map Overlay: {track_name}")
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['world_position_X'], y=df['world_position_Z'], name='Session', line=dict(color='cyan')))
+    
+    if 'world_position_X' in df.columns and 'world_position_Z' in df.columns:
+        fig.add_trace(go.Scatter(x=df['world_position_X'], y=df['world_position_Z'], name='Session', line=dict(color='cyan')))
+        
+        player_apexes = get_dynamic_apexes(df)
+        for apex in player_apexes:
+            fig.add_annotation(x=apex['x'], y=apex['z'], text=f"{int(apex['speed'])}kph", showarrow=True, font=dict(color="cyan"))
 
     if ref_df is not None:
-        fig.add_trace(go.Scatter(x=ref_df['x'], y=ref_df['y'], name='Reference', line=dict(color='white', width=2)))
-        # Example ranges for Suzuka
-        suzuka_corners = [(100, 200), (350, 450)] 
-        for apex in get_apex_data(ref_df, suzuka_corners):
-            fig.add_annotation(x=apex['x'], y=apex['y'], text=f"{int(apex['speed'])}kph", showarrow=True)
+        ref_x = 'world_position_X' if 'world_position_X' in ref_df.columns else 'x'
+        ref_z = 'world_position_Z' if 'world_position_Z' in ref_df.columns else 'y'
+        
+        if ref_x in ref_df.columns and ref_z in ref_df.columns:
+            fig.add_trace(go.Scatter(x=ref_df[ref_x], y=ref_df[ref_z], name='Reference', line=dict(color='white', width=2)))
+            
+            ref_apexes = get_dynamic_apexes(ref_df)
+            for apex in ref_apexes:
+                fig.add_annotation(x=apex['x'], y=apex['z'], text=f"{int(apex['speed'])}kph", showarrow=True, font=dict(color="white"))
 
+    fig.update_layout(xaxis_title="X Position", yaxis_title="Z Position", showlegend=True)
     st.plotly_chart(fig)
 
 def analyze_braking_and_entry(df):
@@ -212,7 +236,7 @@ def analyze_data_integrity(df):
 if uploaded_file is not None:
     telemetry_df = load_data(uploaded_file)
     if telemetry_df is not None:
-        track_id = telemetry_df['trackId'].iloc[0]
+        track_id = telemetry_df['trackId'].iloc[0] if 'trackId' in telemetry_df.columns else "Unknown"
         map_path = f"maps/{track_id}.csv"
         ref_df = pd.read_csv(map_path) if os.path.exists(map_path) else None
         
@@ -228,7 +252,7 @@ if uploaded_file is not None:
             analyze_brake_temperatures(telemetry_df)
             analyze_fuel_and_weight(telemetry_df)
             
-            if ref_df is not None:
+            if ref_df is not None and 'speed' in ref_df.columns:
                 telemetry_df['velocity_delta'] = telemetry_df['speed_kmh'] - ref_df['speed']
             
             analyze_track_map(telemetry_df, ref_df)
