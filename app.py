@@ -5,11 +5,7 @@ import numpy as np
 st.set_page_config(page_title="F1 Virtual Race Engineer", layout="wide")
 st.title("F1 25/26 Virtual Race Engineer")
 
-col1, col2 = st.columns(2)
-with col1:
-    baseline_file = st.file_uploader("1. Upload Baseline Map (Slow Lap CSV)", type=['csv'])
-with col2:
-    uploaded_file = st.file_uploader("2. Upload Session Telemetry (Hot Lap CSV)", type=['csv'])
+uploaded_file = st.file_uploader("Upload Telemetry CSV (SRT format)", type=['csv'])
 
 @st.cache_data
 def load_data(file):
@@ -29,7 +25,7 @@ def load_data(file):
             return None
     return None
 
-def analyze_track_map(baseline_df, telemetry_df):
+def analyze_track_map(df):
     track_dict = {
         0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
         4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
@@ -42,27 +38,20 @@ def analyze_track_map(baseline_df, telemetry_df):
     }
     
     track_name = "Unknown Circuit"
-    if 'trackId' in baseline_df.columns and not baseline_df.empty:
-        t_id = baseline_df['trackId'].iloc[0]
+    if 'trackId' in df.columns and not df.empty:
+        t_id = df['trackId'].iloc[0]
         track_name = track_dict.get(t_id, f"Circuit ID {t_id}")
 
     st.subheader(f"10. Track Map Overlay: {track_name}")
     
-    x_col = next((col for col in baseline_df.columns if col in ['world_position_X', 'worldPositionX', 'pos_X']), None)
-    z_col = next((col for col in baseline_df.columns if col in ['world_position_Z', 'worldPositionZ', 'pos_Z']), None)
+    x_col = next((col for col in df.columns if col in ['world_position_X', 'worldPositionX', 'pos_X']), None)
+    z_col = next((col for col in df.columns if col in ['world_position_Z', 'worldPositionZ', 'pos_Z']), None)
     
     if x_col and z_col:
-        base_plot = baseline_df[[x_col, z_col]].copy()
-        base_plot['Issue'] = 'Racing Line (Baseline)'
-        
-        issues_df = telemetry_df[telemetry_df['Issue'] != 'Normal'][[x_col, z_col, 'Issue']].copy()
-        
-        combined_df = pd.concat([base_plot, issues_df], ignore_index=True)
-        
-        st.write("Visualizing ideal circuit layout and setup issue locations.")
-        st.scatter_chart(combined_df, x=x_col, y=z_col, color='Issue')
+        st.write("Visualizing circuit layout and telemetry trigger locations.")
+        st.scatter_chart(df, x=x_col, y=z_col, color='Issue')
     else:
-        st.info("Spatial coordinate columns not found. Cannot generate map.")
+        st.info("Spatial coordinate columns not found in this CSV. Cannot generate map.")
 
 def analyze_braking_and_entry(df):
     st.subheader("1. Braking & Corner Entry Diagnostics")
@@ -283,4 +272,32 @@ def analyze_data_integrity(df):
     brake_quantized = not brake_changes.empty and brake_changes.var() < 1e-6
     
     if throttle_quantized or brake_quantized:
-        st.error("🚨")
+        st.error("🚨 **Spoofed / Automated Inputs Detected**")
+        st.write("**Telemetry Trigger:** Traces manifest as perfectly even spacing due to quantization, lacking human micro-variations.")
+        st.write("**System Action:** Lap data flagged as invalid. Halting setup recommendations.")
+        return False
+    
+    st.success("Data Integrity Check passed. No spoofed inputs detected.")
+    return True
+
+if uploaded_file is not None:
+    telemetry_df = load_data(uploaded_file)
+    if telemetry_df is not None:
+        st.success("Telemetry data loaded successfully.")
+        
+        telemetry_df['Issue'] = 'Normal'
+        
+        data_valid = analyze_data_integrity(telemetry_df)
+        if data_valid:
+            analyze_braking_and_entry(telemetry_df)
+            analyze_mid_corner_balance(telemetry_df)
+            analyze_corner_exit(telemetry_df)
+            analyze_aerodynamics(telemetry_df)
+            analyze_chassis_dynamics(telemetry_df)
+            analyze_tyres(telemetry_df)
+            analyze_brake_temperatures(telemetry_df)
+            analyze_fuel_and_weight(telemetry_df)
+            
+            analyze_track_map(telemetry_df)
+else:
+    st.info("Please upload your telemetry CSV to begin.")
