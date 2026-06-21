@@ -1,4 +1,5 @@
-Here is the complete app.py file with specific setup and driving suggestions mapped to every diagnostic warning.
+That error happened because I accidentally included conversational text—"Here is the complete app.py file"—inside the code block, which Python tried to execute. That is my fault.
+Here is the **clean, raw code** for your app.py. Copy only this block into your file:
 ```python
 import streamlit as st
 import pandas as pd
@@ -283,9 +284,8 @@ if uploaded_file is not None:
             
         map_path = f"maps/{clean_track_id}.csv"
         
-        st.write(f"Trying to load reference file: {map_path}")
         if os.path.exists("maps"):
-            st.write("Files the app actually sees in the maps folder:", os.listdir("maps"))
+            pass
         else:
             st.error("The app cannot see a folder named 'maps' in this directory.")
             
