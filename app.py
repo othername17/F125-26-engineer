@@ -236,8 +236,21 @@ def analyze_data_integrity(df):
 if uploaded_file is not None:
     telemetry_df = load_data(uploaded_file)
     if telemetry_df is not None:
-        track_id = telemetry_df['trackId'].iloc[0] if 'trackId' in telemetry_df.columns else "Unknown"
-        map_path = f"maps/{track_id}.csv"
+        raw_track_id = telemetry_df['trackId'].iloc[0] if 'trackId' in telemetry_df.columns else 0
+        
+        try:
+            clean_track_id = int(float(raw_track_id))
+        except (ValueError, TypeError):
+            clean_track_id = raw_track_id
+            
+        map_path = f"maps/{clean_track_id}.csv"
+        
+        st.write(f"Trying to load reference file: {map_path}")
+        if os.path.exists("maps"):
+            st.write("Files the app actually sees in the maps folder:", os.listdir("maps"))
+        else:
+            st.error("The app cannot see a folder named 'maps' in this directory.")
+            
         ref_df = pd.read_csv(map_path) if os.path.exists(map_path) else None
         
         telemetry_df['Issue'] = 'Normal'
