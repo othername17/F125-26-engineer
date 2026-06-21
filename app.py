@@ -47,7 +47,15 @@ def analyze_track_map(df, ref_df=None):
         28: "Portimão", 29: "Jeddah", 30: "Miami", 31: "Las Vegas", 32: "Losail"
     }
 
-    track_name = track_dict.get(df['trackId'].iloc[0], "Unknown")
+   # Create a reverse mapping (Name: ID) from your existing track_dict
+id_to_name = track_dict
+name_to_id = {v: k for k, v in id_to_name.items()}
+
+# Determine the name based on the input type
+if isinstance(track_id, str):
+    track_name = track_id
+else:
+    track_name = id_to_name.get(track_id, "Unknown")
     st.subheader(f"10. Track Map Overlay: {track_name}")
 
     fig = go.Figure()
