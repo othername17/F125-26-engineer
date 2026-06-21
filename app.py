@@ -4,6 +4,18 @@ import numpy as np
 import plotly.graph_objects as go
 import os
 
+# Global track dictionary
+track_dict = {
+    0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
+    4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
+    8: "Hockenheim", 9: "Hungaroring", 10: "Spa-Francorchamps", 11: "Monza",
+    12: "Singapore", 13: "Suzuka", 14: "Abu Dhabi", 15: "COTA (Texas)",
+    16: "Brazil", 17: "Austria", 18: "Sochi", 19: "Mexico",
+    20: "Baku", 21: "Sakhir Short", 22: "Silverstone Short", 23: "Texas Short",
+    24: "Suzuka Short", 25: "Hanoi", 26: "Zandvoort", 27: "Imola",
+    28: "Portimão", 29: "Jeddah", 30: "Miami", 31: "Las Vegas", 32: "Losail"
+}
+
 st.set_page_config(page_title="F1 Virtual Race Engineer", layout="wide")
 st.title("F1 25/26 Virtual Race Engineer")
 
@@ -35,27 +47,9 @@ def get_apex_data(df, corner_ranges):
     return apex_data
 
 def analyze_track_map(df, ref_df=None):
-    st.write(f"Detected ID: {df['trackId'].iloc[0]}")
-    track_dict = {
-        0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
-        4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
-        8: "Hockenheim", 9: "Hungaroring", 10: "Spa-Francorchamps", 11: "Monza",
-        12: "Singapore", 13: "Suzuka", 14: "Abu Dhabi", 15: "COTA (Texas)",
-        16: "Brazil", 17: "Austria", 18: "Sochi", 19: "Mexico",
-        20: "Baku", 21: "Sakhir Short", 22: "Silverstone Short", 23: "Texas Short",
-        24: "Suzuka Short", 25: "Hanoi", 26: "Zandvoort", 27: "Imola",
-        28: "Portimão", 29: "Jeddah", 30: "Miami", 31: "Las Vegas", 32: "Losail"
-    }
-
-   # Create a reverse mapping (Name: ID) from your existing track_dict
-id_to_name = track_dict
-name_to_id = {v: k for k, v in id_to_name.items()}
-
-# Determine the name based on the input type
-if isinstance(track_id, str):
-    track_name = track_id
-else:
-    track_name = id_to_name.get(track_id, "Unknown")
+    track_id = df['trackId'].iloc[0]
+    track_name = track_id if isinstance(track_id, str) else track_dict.get(track_id, "Unknown")
+    
     st.subheader(f"10. Track Map Overlay: {track_name}")
 
     fig = go.Figure()
