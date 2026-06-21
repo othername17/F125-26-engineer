@@ -35,8 +35,14 @@ def get_apex_data(df, corner_ranges):
     return apex_data
 
 def analyze_track_map(df, ref_df=None):
-    st.write(f"Detected ID: {df['trackId'].iloc[0]}")
-    track_dict = {
+    track_id = df['trackId'].iloc[0]
+    track_dict = {13: "Suzuka"} # Ensure your full dict is here
+    
+    # If the ID is the string 'Suzuka', force it to 13 for the lookup
+    lookup_id = 13 if track_id == "Suzuka" else track_id
+    track_name = track_dict.get(lookup_id, "Unknown")
+    
+    st.subheader(f"10. Track Map Overlay: {track_name}")
         0: "Melbourne", 1: "Paul Ricard", 2: "Shanghai", 3: "Bahrain",
         4: "Catalunya", 5: "Monaco", 6: "Montreal", 7: "Silverstone",
         8: "Hockenheim", 9: "Hungaroring", 10: "Spa-Francorchamps", 11: "Monza",
